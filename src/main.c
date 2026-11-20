@@ -113,11 +113,22 @@ int g_regs_write(uint16_t addr, uint16_t value, bool commit) {
     return 0;
 }
 
+// Zbývající sekundy do hardwarového resetu nastavení (0 = odpočet neběží). Nastavuje factory_reset_pin_task().
+static int s_reset_left_s = 0;
+
 // Vykreslí hodnoty a stav sítě na displej.
 // Rozložení (128x64 px): nahoře velká teplota, pod ní vlhkost a tlak, dole malým písmem stav sítě/IP.
 static void draw_display(void) {
     char l1[20], l2[20], l3[20];
     oled_clear();
+    if (s_reset_left_s > 0) {                             // odpočet do resetu nastavení přebije běžné zobrazení
+        snprintf(l1, sizeof l1, "RESET %d", s_reset_left_s);
+        oled_text_font(0, 4, l1, &font_12x24);
+        oled_text_font(0, 34, "Pust pin pro", &font_8x16);
+        oled_text_font(0, 48, "zruseni", &font_8x16);
+        oled_flush();
+        return;
+    }
     if (g_data.status == 0) {
         // "\xC2\xB0" je znak ° v UTF-8 (zapsaný zvlášť, aby se za ním "C" nezměnilo na číslo znaku)
         snprintf(l1, sizeof l1, "%.*f" "\xC2\xB0" "C", g_set.disp_temp_dec, g_data.temp);   // počet desetinných míst z nastavení
@@ -176,9 +187,18 @@ static void factory_reset_pin_task(void) {
     static uint32_t pressed_since = 0;     // čas, kdy se pin sepnul (0 = nesepnutý)
     static bool warned = false;
     uint32_t now = to_ms_since_boot(get_absolute_time());
-    if (gpio_get(FACTORY_RESET_PIN)) { pressed_since = 0; warned = false; return; }   // pull-up: ve vysoké úrovni = nesepnuto
+    if (gpio_get(FACTORY_RESET_PIN)) {                    // pull-up: ve vysoké úrovni = nesepnuto
+        pressed_since = 0; warned = false;
+        if (s_reset_left_s) { s_reset_left_s = 0; draw_display(); }   // pin puštěn: odpočet zrušen, hned překreslíme
+        return;
+    }
     if (pressed_since == 0) pressed_since = now ? now : 1;
     if (!warned && now - pressed_since > 1000) { warned = true; printf("Reset nastaveni: drz pin dal...\n"); }
+    // V posledních 5 s ukazujeme na displeji odpočet (5, 4, 3, 2, 1); překreslí se jen při změně čísla.
+    uint32_t held = now - pressed_since;
+    int left = held >= FACTORY_RESET_HOLD_MS ? 0 : (int)((FACTORY_RESET_HOLD_MS - held + 999) / 1000);
+    if (left > 5) left = 0;
+    if (left != s_reset_left_s) { s_reset_left_s = left; if (left) draw_display(); }
     if (now - pressed_since >= FACTORY_RESET_HOLD_MS) {
         printf("Reset nastaveni: vracim tovarni nastaveni a restartuji\n");
         settings_defaults(&g_set);
