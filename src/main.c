@@ -13,6 +13,8 @@
 //    5. Indikační LED na desce pomalu bliká (znamení, že firmware běží).
 // ============================================================================
 #include <stdio.h>
+#include <string.h>
+#include <math.h>
 #include "pico/stdlib.h"
 #include "pico/stdio_usb.h"
 #include "hardware/i2c.h"
@@ -39,14 +41,46 @@
 
 // ---- Sdílená data (používá je i síťová vrstva v net_w6300.c) ----
 sensor_data_t g_data;         // poslední naměřené hodnoty
-uint16_t g_regs[4];           // Modbus registry: 0 teplota*10, 1 vlhkost*10, 2 tlak [hPa], 3 stav
+uint16_t g_regs[MODBUS_NREGS];  // Modbus registry (mapa níže)
 
-// Převede naměřené hodnoty do Modbus registrů (celá čísla, teplota a vlhkost v desetinách).
+// Mapa Modbus registrů (funkce 03 i 04, každý registr má 16 bitů):
+//   0      teplota v desetinách °C (int16, se znaménkem)
+//   1      vlhkost v desetinách % (uint16)
+//   2      tlak v hPa (uint16)
+//   3      stav: 0 = OK, 1 = chyba senzoru
+//   4-5    teplota [°C]   jako float (IEEE 754, 32 bitů ve dvou registrech)
+//   6-7    vlhkost [%]    jako float
+//   8-9    tlak [hPa]     jako float
+// Při chybě senzoru jsou floaty NaN (0x7FC00000), aby si klient nevzal starou hodnotu za platnou.
+
+// Uloží číslo typu float do dvou po sobě jdoucích registrů od indexu idx.
+static void put_float(int idx, float v) {
+    uint32_t u;
+    memcpy(&u, &v, sizeof u);                 // bitová podoba floatu (IEEE 754)
+    uint16_t hi = (uint16_t)(u >> 16);        // horní slovo (znaménko, exponent, začátek mantisy)
+    uint16_t lo = (uint16_t)(u & 0xFFFF);     // dolní slovo
+#if MODBUS_FLOAT_WORD_SWAP
+    g_regs[idx] = lo; g_regs[idx + 1] = hi;   // prohozená slova (CDAB)
+#else
+    g_regs[idx] = hi; g_regs[idx + 1] = lo;   // standardní pořadí (ABCD)
+#endif
+}
+
+// Převede naměřené hodnoty do Modbus registrů.
 static void publish(void) {
     g_regs[0] = (uint16_t)(int16_t)(g_data.temp * 10);   // teplota se znaménkem (záporné hodnoty!)
     g_regs[1] = (uint16_t)(g_data.hum * 10);
     g_regs[2] = (uint16_t)g_data.press;
     g_regs[3] = (uint16_t)g_data.status;
+    if (g_data.status == 0) {
+        put_float(4, g_data.temp);
+        put_float(6, g_data.hum);
+        put_float(8, g_data.press);
+    } else {
+        put_float(4, NAN);                    // chyba senzoru: "není číslo"
+        put_float(6, NAN);
+        put_float(8, NAN);
+    }
 }
 
 // Vykreslí hodnoty a stav sítě na displej.

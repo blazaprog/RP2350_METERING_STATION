@@ -16,6 +16,11 @@ Reserved by the board: GP23 POE_DET, GP24 USB_DET, GP25 WS2812, GP29 ADC3.
 | 1 | Humidity (uint16) | 0.1 %RH |
 | 2 | Pressure (uint16) | hPa |
 | 3 | Status (0 OK, 1 sensor error) | - |
+| 4-5 | Temperature (float32) | C |
+| 6-7 | Humidity (float32) | %RH |
+| 8-9 | Pressure (float32) | hPa |
+
+Floats are IEEE 754, high word first (ABCD); set `MODBUS_FLOAT_WORD_SWAP 1` in `src/config.h` for CDAB. Floats are NaN when the sensor fails.
 
 ## HTTP
 - `GET /` HTML page, `GET /api/data` JSON.

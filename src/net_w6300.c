@@ -29,7 +29,7 @@
 
 // Sdílená data z main.c: poslední naměřené hodnoty a Modbus registry.
 extern sensor_data_t g_data;
-extern uint16_t g_regs[4];
+extern uint16_t g_regs[MODBUS_NREGS];
 
 // --- Stavový automat ---------------------------------------------------------
 typedef enum { NET_NO_CHIP, NET_NO_LINK, NET_DHCP, NET_UP } net_state_t;
@@ -191,7 +191,7 @@ static void handle_data(uint8_t sn, bool is_http) {
         while ((size_t)n - pos >= 8) {
             size_t flen = 6u + (((size_t)s_rx[pos + 4] << 8) | s_rx[pos + 5]);
             if (flen > (size_t)n - pos) break;           // neúplný rámec, zahodíme zbytek
-            size_t m = modbus_handle(&s_rx[pos], flen, s_tx, g_regs, 4);
+            size_t m = modbus_handle(&s_rx[pos], flen, s_tx, g_regs, MODBUS_NREGS);
             if (m > 0 && !send_all(sn, s_tx, m)) break;
             pos += flen;
         }

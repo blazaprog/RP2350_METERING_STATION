@@ -17,6 +17,12 @@
 // --- Porty služeb -----------------------------------------------------------
 #define HTTP_PORT           80                   // webový server (prohlížeč)
 #define MODBUS_PORT         502                  // Modbus TCP (standardní port)
+#define MODBUS_NREGS        10                   // počet registrů v tabulce (viz mapa v main.c a README.md)
+
+// Pořadí dvou 16bitových registrů u hodnot typu float (32 bitů):
+//   0 = nejdřív horní slovo (big-endian, "ABCD") - nejběžnější, výchozí
+//   1 = nejdřív dolní slovo (prohozená slova, "CDAB") - vyžadují ho některé PLC a programy
+#define MODBUS_FLOAT_WORD_SWAP  0
 
 // --- Čísla socketů čipu W6300 (čip jich má 8: 0 až 7) -----------------------
 // Socket 0 používá DHCP klient, socket 1 je rezerva (např. pro DNS/MQTT později).

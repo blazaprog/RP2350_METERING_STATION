@@ -11,7 +11,7 @@ Ethernetový měřič teploty, vlhkosti a tlaku.
 1. Zapoj podle `docs/pinout.md`, připoj síťový kabel (PoE nebo USB-C + síť).
 2. Měřič si přes DHCP vyžádá IP adresu; zobrazí se dole na displeji a vypíše na sériový výstup.
 3. Otevři `http://<IP>/` v prohlížeči, nebo `http://<IP>/api/data` pro JSON.
-4. Modbus TCP: port 502, registry (funkce 03 a 04): 0 = teplota (0,1 °C), 1 = vlhkost (0,1 %), 2 = tlak (hPa), 3 = stav (0 OK, 1 chyba senzoru).
+4. Modbus TCP: port 502, registry (funkce 03 a 04): 0 = teplota (0,1 °C), 1 = vlhkost (0,1 %), 2 = tlak (hPa), 3 = stav (0 OK, 1 chyba senzoru); 4-5 = teplota (float °C), 6-7 = vlhkost (float %), 8-9 = tlak (float hPa). Pořadí slov u floatu se mění v `config.h` (`MODBUS_FLOAT_WORD_SWAP`), při chybě senzoru jsou floaty NaN.
 
 Nastavení (DHCP/statická IP, porty) je v `src/config.h`.
 
