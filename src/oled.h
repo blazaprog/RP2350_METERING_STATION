@@ -18,3 +18,9 @@ void oled_text(int x, int y, const char *s, int scale);
 
 // Pošle obsah paměti na displej.
 void oled_flush(void);
+
+// Rozsvítí všechny pixely v paměti (test displeje). Zobrazí se po oled_flush().
+void oled_fill(void);
+
+// Nakreslí rámeček po obvodu displeje do paměti. Zobrazí se po oled_flush().
+void oled_border(void);

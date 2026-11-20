@@ -38,3 +38,14 @@
 #define LED_ON_R            0                    // barva při svitu (0 až 255); nízké hodnoty = slabší svit
 #define LED_ON_G            40
 #define LED_ON_B            0
+
+// --- Displej OLED (SH1106) --------------------------------------------------
+// Když displej ukazuje obraz zrcadlově nebo vzhůru nohama, změň tyto přepínače
+// (stačí přeložit a nahrát znovu, v kódu se nic jiného upravovat nemusí).
+#define OLED_FLIP_X         1                    // 1 = výchozí směr sloupců (příkaz 0xA1), 0 = zrcadlově otočit (0xA0)
+#define OLED_FLIP_Y         1                    // 1 = výchozí směr řádků (příkaz 0xC8), 0 = otočit vzhůru nohama (0xC0)
+#define OLED_COL_OFFSET     2                    // posun sloupců: SH1106 má 132 sloupců, panel jich ukazuje 128.
+                                                 // Když je obraz o 2 pixely posunutý nebo na kraji svítí svislá čára, zkus 0 nebo 4.
+#define OLED_CONTRAST       0xCF                 // jas displeje 0x00 až 0xFF
+#define OLED_SPI_HZ         (4 * 1000 * 1000)    // rychlost SPI; při šumu v obraze zkus 1 MHz
+#define OLED_SPLASH_MS      1200                 // jak dlouho při startu svítí testovací obrazec (0 = vypnout)

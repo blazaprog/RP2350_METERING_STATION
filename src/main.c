@@ -86,10 +86,20 @@ int main(void) {
     printf("BME280: %s\n", bme_ok ? "found" : "NOT found (check wiring: SDA GP4, SCL GP5, 3V3, GND)");
 
     // --- Displej na SPI ---
-    spi_init(OLED_SPI, 4 * 1000 * 1000);      // 4 MHz je bezpečná rychlost pro SH1106
+    spi_init(OLED_SPI, OLED_SPI_HZ);          // rychlost SPI se nastavuje v config.h (4 MHz je bezpečná)
     gpio_set_function(OLED_SCK,  GPIO_FUNC_SPI);
     gpio_set_function(OLED_MOSI, GPIO_FUNC_SPI);
     oled_init(OLED_SPI, OLED_DC, OLED_CS, OLED_RES);
+    printf("OLED: init done (flipX=%d flipY=%d offset=%d)\n", OLED_FLIP_X, OLED_FLIP_Y, OLED_COL_OFFSET);
+
+    // Úvodní test displeje: nejdřív svítí všechny pixely, pak rámeček s nápisem.
+    // Podle něj poznáš, jestli displej funguje, je správně otočený a nemá posunuté sloupce.
+    if (OLED_SPLASH_MS > 0) {
+        oled_fill();   oled_flush();   sleep_ms(OLED_SPLASH_MS / 2);
+        oled_clear();  oled_border();
+        oled_text(14, 20, "OLED OK", 2);
+        oled_flush();  sleep_ms(OLED_SPLASH_MS / 2);
+    }
 
     // --- Ethernet (neblokuje: bez kabelu program normálně běží dál) ---
     w6300_init();

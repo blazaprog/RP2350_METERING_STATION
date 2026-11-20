@@ -11,10 +11,11 @@
 #include "pico/stdlib.h"
 #include "oled.h"
 #include "oled_font.h"
+#include "config.h"
 
 #define W 128                 // šířka displeje v pixelech
 #define H 64                  // výška displeje v pixelech
-#define COL_OFFSET 2          // SH1106 má v paměti 132 sloupců, panel zobrazuje sloupce 2 až 129
+#define COL_OFFSET OLED_COL_OFFSET   // SH1106 má v paměti 132 sloupců, panel zobrazuje 128 z nich (viz config.h)
 
 static spi_inst_t *s_spi;     // použitá SPI sběrnice
 static uint s_dc, s_cs, s_res;
@@ -54,10 +55,10 @@ void oled_init(spi_inst_t *spi, uint dc, uint cs, uint res) {
     cmd(0x40);              // první řádek paměti = první řádek displeje
     cmd(0xAD); cmd(0x8B);   // zapnout vnitřní měnič napětí pro panel
     cmd(0x32);              // napětí měniče 8,0 V
-    cmd(0xA1);              // směr sloupců (při zrcadlení obrazu změň na 0xA0)
-    cmd(0xC8);              // směr řádků (při obráceném obrazu změň na 0xC0)
+    cmd(OLED_FLIP_X ? 0xA1 : 0xA0);   // směr sloupců (nastavuje se v config.h)
+    cmd(OLED_FLIP_Y ? 0xC8 : 0xC0);   // směr řádků (nastavuje se v config.h)
     cmd(0xDA); cmd(0x12);   // zapojení COM vývodů panelu
-    cmd(0x81); cmd(0xCF);   // kontrast
+    cmd(0x81); cmd(OLED_CONTRAST);    // kontrast (jas)
     cmd(0xD9); cmd(0x22);   // doba přednabíjení
     cmd(0xDB); cmd(0x35);   // napětí VCOM
     cmd(0xA4);              // zobrazovat obsah paměti
@@ -69,10 +70,20 @@ void oled_init(spi_inst_t *spi, uint dc, uint cs, uint res) {
 
 void oled_clear(void) { memset(s_fb, 0, sizeof s_fb); }
 
+// Rozsvítí všechny pixely (test displeje: musí svítit celá plocha bez chybějících pruhů).
+void oled_fill(void) { memset(s_fb, 0xFF, sizeof s_fb); }
+
+
 // Rozsvítí jeden pixel v paměti (mimo displej se ignoruje).
 static void pixel(int x, int y) {
     if (x < 0 || x >= W || y < 0 || y >= H) return;
     s_fb[(y >> 3) * W + x] |= (uint8_t)(1u << (y & 7));
+}
+
+// Nakreslí rámeček po obvodu displeje; podle něj poznáš posun, ořez a zrcadlení obrazu.
+void oled_border(void) {
+    for (int x = 0; x < W; x++) { pixel(x, 0); pixel(x, H - 1); }
+    for (int y = 0; y < H; y++) { pixel(0, y); pixel(W - 1, y); }
 }
 
 void oled_text(int x, int y, const char *s, int scale) {
