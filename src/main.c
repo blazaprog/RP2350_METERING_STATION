@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
+#include "pico/stdio_usb.h"
 #include "hardware/i2c.h"
 #include "hardware/spi.h"
 #include "sensor_data.h"
@@ -32,6 +33,10 @@ static void publish(void) {
 
 int main(void) {
     stdio_init_all();
+    // Wait up to 8 s for a USB serial terminal so the startup messages are not lost.
+    for (int i = 0; i < 80 && !stdio_usb_connected(); i++) sleep_ms(100);
+    sleep_ms(200);
+    printf("\n=== RP2350 metering station boot ===\n");
 
     i2c_init(BME_I2C, 400 * 1000);
     gpio_set_function(BME_SDA, GPIO_FUNC_I2C);
@@ -54,6 +59,8 @@ int main(void) {
             // TODO: bme280 read into g_data; draw on OLED
             g_data.status = 1;   // until the sensor is integrated
             publish();
+            printf("alive %lu s, sensor status=%d (1 = not integrated yet)\n",
+                   (unsigned long)(to_ms_since_boot(get_absolute_time()) / 1000), g_data.status);
         }
         net_poll();
     }
