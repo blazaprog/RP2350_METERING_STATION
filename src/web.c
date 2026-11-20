@@ -1,6 +1,7 @@
 // ============================================================================
 //  web.c - HTTP server: webová stránka a JSON rozhraní
 //
+//  Kromě toho: GET/POST /api/settings (nastavení uložené ve flash) a GET /api/diag (diagnostika).
 //  Stránka (src/web/index.html) je statická. Při sestavení se převede na pole bajtů
 //  (web_page.h) a prohlížeč si pak sám dotazuje JSON na /api/data a /api/history.
 //  Zařízení tak posílá jen malé odpovědi a graf kreslí prohlížeč.
@@ -11,6 +12,9 @@
 #include <string.h>
 #include "web.h"
 #include "history.h"
+#include "settings.h"
+#include "diag.h"
+#include "net_w6300.h"
 #include "config.h"
 #include "web_page.h"      // vygenerováno při sestavení z src/web/index.html (pole web_page)
 
@@ -61,8 +65,8 @@ static size_t json_data(char *body, size_t room, const web_info_t *w) {
         p = put(body, room, p, "{\"temperature\":%.2f,\"humidity\":%.2f,\"pressure\":%.2f,", d->temp, d->hum, d->press);
     else
         p = put(body, room, p, "{\"temperature\":null,\"humidity\":null,\"pressure\":null,");
-    p = put(body, room, p, "\"status\":%d,\"uptime_s\":%lu,\"ip\":\"%s\",\"mac\":\"%s\",\"fw\":\"%s\"}\n",
-            d->status, (unsigned long)w->uptime_s, w->ip, w->mac, FW_VERSION);
+    p = put(body, room, p, "\"status\":%d,\"uptime_s\":%lu,\"ip\":\"%s\",\"mac\":\"%s\",\"fw\":\"%s\",\"name\":\"%s\"}\n",
+            d->status, (unsigned long)w->uptime_s, w->ip, w->mac, FW_VERSION, g_set.name);
     return p;
 }
 
@@ -88,6 +92,34 @@ static size_t json_history(char *body, size_t room) {
     return put(body, room, p, "}\n");
 }
 
+// Je to požadavek POST na danou cestu?
+static bool route_post(const char *req, const char *path) {
+    if (strncmp(req, "POST ", 5) != 0) return false;
+    size_t n = strlen(path);
+    return strncmp(req + 5, path, n) == 0 && (req[5 + n] == ' ' || req[5 + n] == '?');
+}
+
+// Uložení nastavení z webového formuláře. Tělo požadavku je "klíč=hodnota&klíč=hodnota".
+// Odpověď je JSON {"ok":true,"net":..} nebo {"ok":false,"error":".."}; *status je HTTP stav.
+static size_t post_settings(const char *req, char *body, size_t room, const char **status) {
+    const char *hdr_end = strstr(req, "\r\n\r\n");
+    const char *form = hdr_end ? hdr_end + 4 : "";
+    char err[96];
+    bool net_changed = false;
+    set_result_t r = settings_apply_form(form, err, sizeof err, &net_changed);
+    if (r == SET_OK) {
+        if (!settings_save_now()) {                     // změna platí v paměti, ale zápis do flash selhal
+            *status = "500 Internal Server Error";
+            return put(body, room, 0, "{\"ok\":false,\"error\":\"Zápis do flash selhal\"}\n");
+        }
+        if (net_changed) net_request_reconfig();        // síť se přenastaví až po odeslání této odpovědi
+        *status = "200 OK";
+        return put(body, room, 0, "{\"ok\":true,\"net\":%s}\n", net_changed ? "true" : "false");
+    }
+    *status = r == SET_ERR_AUTH ? "401 Unauthorized" : "400 Bad Request";
+    return put(body, room, 0, "{\"ok\":false,\"error\":\"%s\"}\n", err);
+}
+
 const char *http_handle(const char *req, char *resp, size_t cap, const web_info_t *info, size_t *out_len) {
     *out_len = 0;
     if (cap <= HDR_RESERVE + 64) return resp;                // buffer je příliš malý
@@ -97,6 +129,18 @@ const char *http_handle(const char *req, char *resp, size_t cap, const web_info_
 
     if (route(req, "/api/data"))
         return finish(resp, json_data(body, room, info), "200 OK", "application/json", json_hdrs, out_len);
+
+    if (route(req, "/api/settings"))
+        return finish(resp, settings_to_json(body, room), "200 OK", "application/json", json_hdrs, out_len);
+
+    if (route_post(req, "/api/settings")) {
+        const char *status = "500 Internal Server Error";
+        size_t n = post_settings(req, body, room, &status);
+        return finish(resp, n, status, "application/json", json_hdrs, out_len);
+    }
+
+    if (route(req, "/api/diag"))
+        return finish(resp, diag_json(body, room), "200 OK", "application/json", json_hdrs, out_len);
 
     if (route(req, "/api/history"))
         return finish(resp, json_history(body, room), "200 OK", "application/json", json_hdrs, out_len);

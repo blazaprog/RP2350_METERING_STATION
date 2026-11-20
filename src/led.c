@@ -10,6 +10,7 @@
 #include "hardware/pio.h"
 #include "led.pio.h"          // vygeneruje se při sestavení z led.pio
 #include "config.h"
+#include "settings.h"
 
 static PIO  s_pio = pio0;     // použitý blok PIO
 static uint s_sm;             // číslo stavového automatu
@@ -29,14 +30,17 @@ void led_set(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 // Přepíná LED zapnuto/vypnuto po LED_BLINK_MS milisekundách (neblokující).
+// Jas se bere z nastavení (g_set.led_level v %, 0 = zhasnutá) a mění se hned.
 void led_heartbeat(void) {
     static uint32_t last_ms = 0;
     static bool on = false;
+    static int last_level = -1;
     uint32_t now = to_ms_since_boot(get_absolute_time());
-    if (now - last_ms >= LED_BLINK_MS) {
-        last_ms = now;
-        on = !on;
-        if (on) led_set(LED_ON_R, LED_ON_G, LED_ON_B);   // svítí
-        else    led_set(0, 0, 0);                        // zhasnuto
+    bool change_level = (int)g_set.led_level != last_level;     // jas se změnil: překreslíme hned
+    if (now - last_ms >= LED_BLINK_MS || change_level) {
+        if (!change_level) { last_ms = now; on = !on; }
+        last_level = g_set.led_level;
+        if (on && g_set.led_level) led_set(0, (uint8_t)(g_set.led_level * 255 / 100), 0);   // svítí zeleně
+        else                       led_set(0, 0, 0);                                       // zhasnuto
     }
 }

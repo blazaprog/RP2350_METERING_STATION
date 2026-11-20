@@ -127,6 +127,17 @@ int oled_text_width(const char *s, const oled_font_t *f) {
     return n * f->w;
 }
 
+void oled_set_brightness(uint8_t percent) {
+    if (percent == 0) { cmd(0xAE); return; }             // displej vypnout (obsah paměti zůstane)
+    cmd(0xAF);                                           // displej zapnout
+    cmd(0x81); cmd((uint8_t)(percent * 255 / 100));      // kontrast 0 až 255 odpovídá jasu
+}
+
+void oled_set_flip(uint8_t x, uint8_t y) {
+    cmd(x ? 0xA1 : 0xA0);                                // směr sloupců
+    cmd(y ? 0xC8 : 0xC0);                                // směr řádků
+}
+
 void oled_flush(void) {
     for (int page = 0; page < 8; page++) {
         cmd(0xB0 | page);                                // výběr stránky (řádku po 8 pixelech)

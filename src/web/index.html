@@ -23,13 +23,22 @@ h1{font-size:18px;font-weight:600;margin:0}
 .mm{color:var(--mut);font-size:12px;text-align:right}
 canvas{width:100%;height:90px;display:block;margin-top:6px}
 .ax{display:flex;justify-content:space-between;color:var(--mut);font-size:11px}
+details>summary{cursor:pointer;font-weight:600}
+#f h3{font-size:13px;color:var(--mut);font-weight:600;margin:16px 0 6px}
+.fr{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:6px 0;font-size:14px}
+.fr input[type=text],.fr input[type=password],.fr select{width:48%;max-width:240px;padding:6px 8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+.fr input[type=range]{width:48%;max-width:240px}
+button{padding:8px 14px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit;cursor:pointer;margin:12px 8px 0 0}
+#fm{font-size:14px;margin-top:10px}.bad{color:#d33}.good{color:#2fa84f}
 footer{color:var(--mut);font-size:12px;display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:4px}
 </style>
 </head>
 <body>
 <main>
-<header><h1>RP2350 Meteo stanice</h1><span class="st"><i class="dot" id="dot"></i><span id="stt">Načítám…</span></span></header>
+<header><h1 id="hn">RP2350 Meteo stanice</h1><span class="st"><i class="dot" id="dot"></i><span id="stt">Načítám…</span></span></header>
 <div id="cards"></div>
+<details class="card" id="set"><summary>Nastavení</summary><form id="f" onsubmit="return false"></form>
+<button id="sv">Uložit</button><button id="df">Výchozí nastavení</button><div id="fm"></div></details>
 <footer id="ft"></footer>
 <noscript>Pro zobrazení hodnot je potřeba JavaScript. Surová data jsou na <a href="/api/data">/api/data</a>.</noscript>
 </main>
@@ -56,9 +65,10 @@ function setStatus(c,t){$('dot').className='dot '+c;$('stt').textContent=t}
 async function cur(){
  try{
   const d=await J('/api/data');
+  if(d.name){$('hn').textContent=d.name;document.title=d.name}
   Q.forEach(q=>{$(q.k+'v').textContent=d[q.j]==null?'—':d[q.j].toFixed(q.d)});
   setStatus(d.status?'err':'ok',d.status?'Chyba senzoru':'Měří');
-  $('ft').innerHTML=`<span>IP ${d.ip}</span><span>MAC ${d.mac}</span><span>Doba běhu ${up(d.uptime_s)}</span><span>FW ${d.fw}</span><a href="/api/data" style="color:inherit">JSON</a>`;
+  $('ft').innerHTML=`<span>IP ${d.ip}</span><span>MAC ${d.mac}</span><span>Doba běhu ${up(d.uptime_s)}</span><span>FW ${d.fw}</span><a href="/api/data" style="color:inherit">JSON</a><a href="/api/diag" style="color:inherit">Diagnostika</a>`;
  }catch(e){setStatus('err','Zařízení nedostupné')}
 }
 
@@ -87,6 +97,71 @@ function drawAll(){
 
 // Historie (každou minutu)
 async function hist(){try{H=await J('/api/history');drawAll()}catch(e){}}
+
+
+// ---- Nastavení ----
+// Pole formuláře: [klíč, popisek, typ, (volby pro select), (1 = hodnota se zobrazuje obráceně)]; pole jen s textem je nadpis.
+const F=[
+ ['Zařízení'],['name','Název','text'],
+ ['Displej a LED'],['bright','Jas displeje (%)','range'],['led','Jas LED (%)','range'],
+ ['flip_x','Zrcadlit displej vodorovně','check',0,1],['flip_y','Otočit displej o 180 °','check',0,1],
+ ['temp_dec','Teplota na displeji','sel',[[1,'desetiny'],[2,'setiny']]],
+ ['Kalibrace senzoru (přičte se k naměřené hodnotě)'],
+ ['cal_t','Teplota (°C)','text'],['cal_h','Vlhkost (%)','text'],['cal_p','Tlak (hPa)','text'],
+ ['Síť (změna adresy zařízení na chvíli přeruší spojení)'],['dhcp','Adresu přidělí router (DHCP)','check'],
+ ['ip','IP adresa','text'],['mask','Maska','text'],['gw','Brána','text'],['dns','DNS','text'],
+ ['Modbus'],['mb_swap','Float: prohozená slova (CDAB)','check'],['mb_unit','Unit ID (0 = jakékoli)','text'],
+ ['Heslo pro změny nastavení'],['newpass','Nové heslo (nejvýše 16 znaků)','password'],['clearpass','Zrušit heslo','check']];
+$('f').innerHTML=F.map(f=>{
+ if(f.length<2)return`<h3>${f[0]}</h3>`;
+ const id='f_'+f[0];let c;
+ if(f[2]=='sel')c=`<select id="${id}">${f[3].map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('')}</select>`;
+ else if(f[2]=='range')c=`<input type="range" id="${id}" min="0" max="100"><span id="${id}o" style="width:3em;text-align:right"></span>`;
+ else c=`<input type="${f[2]}" id="${id}"${f[2]=='check'?'':' autocomplete="off"'}>`;
+ return`<div class="fr"><label for="${id}">${f[1]}</label>${c}</div>`}).join('')+
+ '<div class="fr" id="pwr" style="display:none"><label for="pw">Heslo pro uložení</label><input type="password" id="pw" autocomplete="off"></div>';
+document.querySelectorAll('#f input[type=range]').forEach(r=>r.oninput=()=>$(r.id+'o').textContent=r.value+' %');
+document.querySelectorAll('#f input[type=text]').forEach(()=>0);
+// Zaškrtávací políčka: zrobíme je skutečně jako checkbox (typ "check" není platný typ inputu)
+F.forEach(f=>{if(f[2]=='check')$('f_'+f[0]).type='checkbox'});
+let loaded=false;
+async function loadSet(){
+ try{
+  const s=await J('/api/settings');
+  F.forEach(f=>{
+   if(f.length<2||f[0]=='newpass'||f[0]=='clearpass')return;
+   const e=$('f_'+f[0]);
+   if(f[2]=='check')e.checked=!!s[f[0]]!=!!f[4];else e.value=s[f[0]];
+   if(f[2]=='range')$('f_'+f[0]+'o').textContent=s[f[0]]+' %';
+  });
+  $('pwr').style.display=s.locked?'':'none';loaded=true;
+ }catch(e){$('fm').textContent='Nastavení se nepodařilo načíst';$('fm').className='bad'}
+}
+$('set').addEventListener('toggle',()=>{if($('set').open&&!loaded)loadSet()});
+async function save(defaults){
+ const p=new URLSearchParams();
+ F.forEach(f=>{
+  if(f.length<2)return;
+  const e=$('f_'+f[0]);
+  if(f[2]=='check'){if(f[0]=='clearpass'){if(e.checked)p.set('clearpass','1')}else p.set(f[0],(e.checked?1:0)^(f[4]?1:0))}
+  else if(f[0]=='newpass'){if(e.value)p.set('newpass',e.value)}
+  else p.set(f[0],e.value);
+ });
+ if($('pw').value)p.set('pw',$('pw').value);
+ if(defaults)p.set('defaults','1');
+ $('fm').textContent='Ukládám…';$('fm').className='';
+ try{
+  const r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:p.toString()});
+  const d=await r.json();
+  if(d.ok){
+   $('fm').textContent=d.net?'Uloženo. Síť se přenastavuje, novou adresu uvidíš na displeji zařízení.':'Uloženo.';$('fm').className='good';
+   $('newpass').value='';loaded=false;if(!d.net)loadSet();
+   if(d.net&&!$('f_dhcp').checked){const ip=$('f_ip').value;setTimeout(()=>location.href='http://'+ip+'/',6000)}
+  }else{$('fm').textContent=d.error||'Chyba';$('fm').className='bad'}
+ }catch(e){$('fm').textContent=p.get('dhcp')!==null?'Spojení se zařízením se přerušilo (možná se změnila adresa).':'Chyba spojení';$('fm').className='bad'}
+}
+$('sv').onclick=()=>save(false);
+$('df').onclick=()=>{if(confirm('Obnovit výchozí nastavení (síť, kalibrace, displej, heslo)?'))save(true)};
 
 // Při startu načteme historii a pak hodnoty postupně (zařízení obsluhuje jen pár spojení naráz).
 (async()=>{await hist();await cur();setInterval(cur,2000);setInterval(hist,60000)})();

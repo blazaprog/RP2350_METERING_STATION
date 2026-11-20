@@ -9,20 +9,14 @@
 
 Reserved by the board: GP23 POE_DET, GP24 USB_DET, GP25 WS2812, GP29 ADC3.
 
-## Modbus TCP (port 502), FC 03/04
-| Addr | Value | Unit |
-|---|---|---|
-| 0 | Temperature (int16) | 0.1 C |
-| 1 | Humidity (uint16) | 0.1 %RH |
-| 2 | Pressure (uint16) | hPa |
-| 3 | Status (0 OK, 1 sensor error) | - |
-| 4-5 | Temperature (float32) | C |
-| 6-7 | Humidity (float32) | %RH |
-| 8-9 | Pressure (float32) | hPa |
+## Modbus TCP (port 502)
+Full register map (measurements 0-9, writable brightness 10-11, diagnostics 16-30): see [modbus.md](modbus.md).
 
-Floats are IEEE 754, high word first (ABCD); set `MODBUS_FLOAT_WORD_SWAP 1` in `src/config.h` for CDAB. Floats are NaN when the sensor fails.
+## Service channel
+TCP port 2323 (socket 6) and USB serial: `help`, `diag`, `show`, `auth <pw>`, `defaults`, `reboot`, `quit`.
 
 ## HTTP
 - `GET /` HTML page (cards + 6 h charts, source in `src/web/index.html`).
 - `GET /api/data` JSON: temperature, humidity, pressure (2 decimals, null on sensor error), status, uptime_s, ip, mac, fw.
+- `GET /api/settings`, `POST /api/settings` (form-urlencoded; password in `pw` when set), `GET /api/diag`.
 - `GET /api/history` JSON: `{"step":60,"n":N,"t":[...],"h":[...],"p":[...]}`, oldest first; t = 0.01 C, h = 0.01 %, p = 0.1 hPa. One point per minute, up to 360 (6 h), kept in RAM.

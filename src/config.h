@@ -17,7 +17,8 @@
 // --- Porty služeb -----------------------------------------------------------
 #define HTTP_PORT           80                   // webový server (prohlížeč)
 #define MODBUS_PORT         502                  // Modbus TCP (standardní port)
-#define MODBUS_NREGS        10                   // počet registrů v tabulce (viz mapa v main.c a README.md)
+#define SERVICE_PORT        2323                 // servisní kanál (připoj se přes telnet nebo PuTTY v režimu raw)
+#define MODBUS_NREGS        31                   // počet registrů v tabulce (adresy 0 až 30, mapa v docs/modbus.md)
 
 // Pořadí dvou 16bitových registrů u hodnot typu float (32 bitů):
 //   0 = nejdřív horní slovo (big-endian, "ABCD") - nejběžnější, výchozí
@@ -31,6 +32,7 @@
 #define SOCK_HTTP_B         3
 #define SOCK_MODBUS_A       4
 #define SOCK_MODBUS_B       5
+#define SOCK_SERVICE        6                    // servisní textový kanál (jeden klient najednou)
 
 // --- Ladění -----------------------------------------------------------------
 // Jak dlouho (ms) firmware při startu počká na připojení sériového monitoru přes USB,
@@ -72,3 +74,18 @@
 
 // Verze firmwaru (zobrazuje se na webu a v JSON).
 #define FW_VERSION          "0.4"
+
+// --- Nastavení uložená ve flash ----------------------------------------------
+// Hodnoty výše (síť, displej, ...) jsou jen VÝCHOZÍ. Skutečné nastavení se mění na webu, přes Modbus
+// nebo servisní kanál a ukládá se do flash (viz settings.h).
+#define DEVICE_NAME_DEFAULT     "Meteo stanice"  // výchozí název zařízení
+#define SETTINGS_SAVE_DELAY_MS  5000             // změna z Modbusu se zapíše do flash až po této době klidu (šetří flash)
+#define SETTINGS_SAVE_MAX_MS    60000            // ...ale nejpozději po této době od první změny
+
+// --- Registry Modbus, které jdou zapisovat (funkce 06 a 16) ---------------------
+#define MB_REG_DISP_BRIGHT      10               // jas displeje v % (0 = displej vypnutý, 100 = nejjasnější)
+#define MB_REG_LED_LEVEL        11               // jas indikační LED v % (0 = zhasnutá)
+
+// --- Diagnostika ------------------------------------------------------------
+#define FW_VERSION_NUM          4                // verze firmwaru krát 10 (pro Modbus), 4 = "0.4"
+#define WATCHDOG_MS             8000             // když smyčka neodpoví do této doby, zařízení se samo restartuje

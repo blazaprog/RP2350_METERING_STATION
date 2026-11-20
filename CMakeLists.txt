@@ -53,6 +53,11 @@ add_executable(metering_station
     src/modbus.c
     src/web.c
     src/history.c
+    src/settings.c
+    src/settings_flash.c
+    src/diag.c
+    src/diag_hw.c
+    src/service.c
     src/net_w6300.c
     src/bme280.c
     src/bme280_calc.c
@@ -78,6 +83,10 @@ target_link_libraries(metering_station
     hardware_i2c
     hardware_spi
     hardware_pio
+    hardware_flash
+    hardware_adc
+    hardware_watchdog
+    pico_flash
     pico_unique_id
     ethchip
 )

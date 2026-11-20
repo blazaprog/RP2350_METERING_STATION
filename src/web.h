@@ -24,4 +24,7 @@ typedef struct {
 //   GET /             webová stránka (karty s hodnotami a grafy; stránka sama čte JSON)
 //   GET /api/data     aktuální hodnoty a údaje o zařízení (JSON)
 //   GET /api/history  historie pro graf (JSON, celá čísla)
+//   GET /api/settings aktuální nastavení (JSON, bez hesla)
+//   POST /api/settings změna nastavení (tělo "klíč=hodnota&...", viz settings_apply_form)
+//   GET /api/diag     diagnostika (JSON)
 const char *http_handle(const char *req, char *resp, size_t cap, const web_info_t *info, size_t *out_len);

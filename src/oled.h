@@ -37,3 +37,9 @@ void oled_text_font(int x, int y, const char *s, const oled_font_t *f);
 
 // Šířka textu v pixelech pro dané písmo (např. pro zarovnání doprava).
 int oled_text_width(const char *s, const oled_font_t *f);
+
+// Nastaví jas displeje v procentech: 0 displej vypne, 1 až 100 ho zapne a nastaví jas.
+void oled_set_brightness(uint8_t percent);
+
+// Nastaví směr zobrazení: x = 1 výchozí směr sloupců, 0 zrcadlově; y = 1 výchozí směr řádků, 0 vzhůru nohama.
+void oled_set_flip(uint8_t x, uint8_t y);
