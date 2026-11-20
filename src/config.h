@@ -62,3 +62,13 @@
 
 // --- Zobrazení hodnot na displeji -------------------------------------------
 #define DISPLAY_TEMP_DECIMALS   2                // počet desetinných míst teploty na displeji (2 = setiny stupně, 1 = desetiny)
+
+// --- Historie pro graf na webu ----------------------------------------------
+// Zařízení si v paměti drží posledních HISTORY_POINTS bodů; každý bod je průměr za HISTORY_STEP_S sekund.
+// Při 360 bodech po 60 s je to posledních 6 hodin. Po restartu se historie smaže (je jen v RAM).
+// Pozor: JSON s historií musí vejít do vyrovnávací paměti odpovědi (8 kB v net_w6300.c), 360 bodů je maximum.
+#define HISTORY_POINTS      360
+#define HISTORY_STEP_S      60
+
+// Verze firmwaru (zobrazuje se na webu a v JSON).
+#define FW_VERSION          "0.4"

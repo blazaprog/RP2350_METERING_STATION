@@ -14,3 +14,7 @@ void net_poll(void);
 // Krátký text o stavu sítě pro displej: "NO LINK", "DHCP" nebo IP adresa (např. 192.168.1.50).
 // Vrácený ukazatel platí do dalšího volání.
 const char *net_status_text(void);
+
+// Adresy jako text pro web. IP adresa platí, jakmile síť běží (stav NET_UP).
+const char *net_ip_text(void);
+const char *net_mac_text(void);

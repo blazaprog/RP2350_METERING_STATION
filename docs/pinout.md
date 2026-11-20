@@ -23,4 +23,6 @@ Reserved by the board: GP23 POE_DET, GP24 USB_DET, GP25 WS2812, GP29 ADC3.
 Floats are IEEE 754, high word first (ABCD); set `MODBUS_FLOAT_WORD_SWAP 1` in `src/config.h` for CDAB. Floats are NaN when the sensor fails.
 
 ## HTTP
-- `GET /` HTML page, `GET /api/data` JSON.
+- `GET /` HTML page (cards + 6 h charts, source in `src/web/index.html`).
+- `GET /api/data` JSON: temperature, humidity, pressure (2 decimals, null on sensor error), status, uptime_s, ip, mac, fw.
+- `GET /api/history` JSON: `{"step":60,"n":N,"t":[...],"h":[...],"p":[...]}`, oldest first; t = 0.01 C, h = 0.01 %, p = 0.1 hPa. One point per minute, up to 360 (6 h), kept in RAM.

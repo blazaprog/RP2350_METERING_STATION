@@ -26,6 +26,7 @@
 #include "oled.h"
 #include "net_w6300.h"
 #include "led.h"
+#include "history.h"
 
 // ---- Zapojení periferií (ověřeno podle schématu Waveshare RP2350-POE-ETH) ----
 // Poznámka: Ethernet W6300 používá SPI0 a GP16 až GP21 (viz lib/ethchip/Port/DEV_Config.h).
@@ -154,6 +155,7 @@ int main(void) {
             float t, h, p;
             if (bme_ok && bme280_read(&t, &h, &p)) {
                 g_data.temp = t; g_data.hum = h; g_data.press = p; g_data.status = 0;
+                history_add(to_ms_since_boot(get_absolute_time()), t, h, p);   // bod do historie pro graf na webu
             } else {
                 g_data.status = 1;                            // chyba senzoru
                 bme_ok = false;                               // příště zkusíme senzor najít znovu

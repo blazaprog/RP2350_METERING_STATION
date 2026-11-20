@@ -52,6 +52,7 @@ add_executable(metering_station
     src/main.c
     src/modbus.c
     src/web.c
+    src/history.c
     src/net_w6300.c
     src/bme280.c
     src/bme280_calc.c
@@ -60,7 +61,16 @@ add_executable(metering_station
     src/led.c
 )
 
-target_include_directories(metering_station PRIVATE src)
+# Webová stránka src/web/index.html se při konfiguraci převede na pole bajtů v jazyce C
+# (web_page.h v adresáři sestavení). Stačí upravit HTML a znovu přeložit.
+set(WEB_HTML ${CMAKE_CURRENT_LIST_DIR}/src/web/index.html)
+file(READ ${WEB_HTML} WEB_HEX HEX)
+string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," WEB_ARRAY "${WEB_HEX}")
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/web_page.h
+     "// Vygenerováno z src/web/index.html, needituj.\nstatic const unsigned char web_page[] = {${WEB_ARRAY}0x00};\n")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${WEB_HTML})
+
+target_include_directories(metering_station PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
 
 # Použité knihovny: základ SDK, I2C (senzor), SPI (displej), PIO (LED), unikátní ID čipu (MAC adresa) a Ethernet
 target_link_libraries(metering_station

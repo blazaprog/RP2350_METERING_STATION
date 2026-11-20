@@ -54,7 +54,7 @@ static eth_NetInfo s_net = {
 // Pomocné vyrovnávací paměti. DHCP knihovna potřebuje větší buffer (2 kB).
 static uint8_t s_dhcp_buf[2048];
 static uint8_t s_rx[1024];     // přijatý požadavek (HTTP nebo Modbus)
-static uint8_t s_tx[1280];     // odpověď
+static uint8_t s_tx[8192];     // odpověď (webová stránka a JSON s historií mají několik kB)
 
 // ----------------------------------------------------------------------------
 //  Pomocné funkce
@@ -154,10 +154,10 @@ void w6300_init(void) {
 // ----------------------------------------------------------------------------
 
 // Odešle celý blok dat. Čip může odeslat jen část nebo být chvíli zaneprázdněn,
-// proto opakujeme, nejdéle 300 ms. Vrací true při úspěchu.
+// proto opakujeme, nejdéle 1 s (větší odpověď se do čipu vejde po částech, jak se uvolňuje jeho vyrovnávací paměť). Vrací true při úspěchu.
 static bool send_all(uint8_t sn, const uint8_t *data, size_t len) {
     size_t sent = 0;
-    absolute_time_t deadline = make_timeout_time_ms(300);
+    absolute_time_t deadline = make_timeout_time_ms(1000);
     while (sent < len) {
         int32_t r = send(sn, (uint8_t *)(data + sent), (uint16_t)(len - sent));
         if (r < 0) { close(sn); return false; }        // chyba spojení
@@ -181,8 +181,15 @@ static void handle_data(uint8_t sn, bool is_http) {
     if (is_http) {
         // Sestavíme odpověď (HTML nebo JSON) a odešleme ji. Po odeslání spojení zavřeme
         // (HTTP/1.1 s "Connection: close"), čímž se socket uvolní pro dalšího klienta.
-        size_t m = http_handle((const char *)s_rx, (char *)s_tx, sizeof s_tx, &g_data);
-        if (m > 0) send_all(sn, s_tx, m);
+        web_info_t info = {
+            .d = &g_data,
+            .ip = net_ip_text(),
+            .mac = net_mac_text(),
+            .uptime_s = to_ms_since_boot(get_absolute_time()) / 1000,
+        };
+        size_t m;
+        const char *out = http_handle((const char *)s_rx, (char *)s_tx, sizeof s_tx, &info, &m);
+        if (m > 0) send_all(sn, (const uint8_t *)out, m);
         disconnect(sn);
     } else {
         // Modbus TCP: v jednom TCP segmentu může být i víc rámců za sebou.
@@ -291,4 +298,20 @@ const char *net_status_text(void) {
         snprintf(buf, sizeof buf, "%d.%d.%d.%d", s_net.ip[0], s_net.ip[1], s_net.ip[2], s_net.ip[3]);
         return buf;
     }
+}
+
+// IP adresa jako text (např. "192.168.1.50"); mimo stav NET_UP je to "-".
+const char *net_ip_text(void) {
+    static char buf[20];
+    if (s_state != NET_UP) return "-";
+    snprintf(buf, sizeof buf, "%d.%d.%d.%d", s_net.ip[0], s_net.ip[1], s_net.ip[2], s_net.ip[3]);
+    return buf;
+}
+
+// MAC adresa jako text (např. "02:08:DC:AA:BB:CC").
+const char *net_mac_text(void) {
+    static char buf[20];
+    snprintf(buf, sizeof buf, "%02X:%02X:%02X:%02X:%02X:%02X",
+             s_net.mac[0], s_net.mac[1], s_net.mac[2], s_net.mac[3], s_net.mac[4], s_net.mac[5]);
+    return buf;
 }
