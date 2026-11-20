@@ -52,11 +52,11 @@ static void publish(void) {
 // Vykreslí hodnoty a stav sítě na displej.
 // Rozložení (128x64 px): nahoře velká teplota, pod ní vlhkost a tlak, dole malým písmem stav sítě/IP.
 static void draw_display(void) {
-    char l1[16], l2[20], l3[20];
+    char l1[20], l2[20], l3[20];
     oled_clear();
     if (g_data.status == 0) {
         // "\xC2\xB0" je znak ° v UTF-8 (zapsaný zvlášť, aby se za ním "C" nezměnilo na číslo znaku)
-        snprintf(l1, sizeof l1, "%.1f" "\xC2\xB0" "C", g_data.temp);
+        snprintf(l1, sizeof l1, "%.*f" "\xC2\xB0" "C", DISPLAY_TEMP_DECIMALS, g_data.temp);   // počet desetinných míst z config.h
         snprintf(l2, sizeof l2, "RH %.1f %%", g_data.hum);
         snprintf(l3, sizeof l3, "%.1f hPa", g_data.press);
     } else {

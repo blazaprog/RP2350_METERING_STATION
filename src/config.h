@@ -53,3 +53,6 @@
 // --- Obnovování měření a displeje -------------------------------------------
 #define MEASURE_PERIOD_MS   250                  // jak často se měří a překresluje displej (ms); menší číslo = rychlejší
 #define SERIAL_PERIOD_MS    1000                 // jak často se vypisuje řádek do sériového monitoru (ms)
+
+// --- Zobrazení hodnot na displeji -------------------------------------------
+#define DISPLAY_TEMP_DECIMALS   2                // počet desetinných míst teploty na displeji (2 = setiny stupně, 1 = desetiny)
