@@ -20,6 +20,13 @@ set(CMAKE_CXX_STANDARD 17)
 # Board: RP2350-POE-ETH is Pico 2 compatible (RP2350A, 16MB flash)
 set(PICO_BOARD pico2 CACHE STRING "Board type")
 
+# Windows user names with non-ASCII characters break GNU ld (cannot open linker script).
+# Workaround: create an ASCII junction in cmd:  mklink /J C:\pico-sdk-link "%USERPROFILE%\.pico-sdk"
+# If it exists, use the SDK through it.
+if(WIN32 AND EXISTS C:/pico-sdk-link/sdk/${sdkVersion})
+    set(PICO_SDK_PATH C:/pico-sdk-link/sdk/${sdkVersion})
+endif()
+
 # The VS Code extension sets PICO_SDK_PATH as a CMake variable (pico-vscode.cmake).
 # Fall back to the environment variable for command-line builds.
 if(NOT PICO_SDK_PATH AND DEFINED ENV{PICO_SDK_PATH})
