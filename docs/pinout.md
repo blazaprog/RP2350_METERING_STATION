@@ -7,6 +7,8 @@
 | OLED 1.3" SH1106 (SPI1, 4-wire) | SCK / MOSI(SDA) / CS / DC / RES | GP10 / GP11 / GP9 / GP8 / GP12 |
 | BME280 (I2C0) | SDA / SCL | GP4 / GP5 |
 
+| Factory reset (hold to GND 10 s) | input, pull-up | GP14 (`FACTORY_RESET_PIN`) |
+
 Reserved by the board: GP23 POE_DET, GP24 USB_DET, GP25 WS2812, GP29 ADC3.
 
 ## Modbus TCP (port 502)

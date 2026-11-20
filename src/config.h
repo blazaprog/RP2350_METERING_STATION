@@ -88,4 +88,10 @@
 
 // --- Diagnostika ------------------------------------------------------------
 #define FW_VERSION_NUM          4                // verze firmwaru krát 10 (pro Modbus), 4 = "0.4"
+// Hardwarový reset nastavení: pin spojený se zemí (GND) po dobu FACTORY_RESET_HOLD_MS vrátí tovární nastavení
+// (síť na DHCP, heslo zrušeno, kalibrace a displej výchozí) a zařízení se restartuje. Funguje i při zapomenutém hesle.
+// Pin je s vnitřním pull-up rezistorem, takže nezapojený je ve stavu "nic". Ověř, že zvolený GPIO je na desce vyvedený.
+#define FACTORY_RESET_PIN      14
+#define FACTORY_RESET_HOLD_MS  10000
+
 #define WATCHDOG_MS             8000             // když smyčka neodpoví do této doby, zařízení se samo restartuje

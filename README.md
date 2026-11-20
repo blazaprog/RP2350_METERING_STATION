@@ -14,7 +14,8 @@ Ethernetový měřič teploty, vlhkosti a tlaku.
 4. Modbus TCP: port 502, funkce 03/04/06/16. Měření (teplota, vlhkost, tlak i jako float), jas displeje a LED (zapisovatelný) a diagnostika. Kompletní mapa registrů je v [docs/modbus.md](docs/modbus.md).
 5. Nastavení: na webové stránce karta **Nastavení** (DHCP nebo pevná IP, kalibrace senzoru, jas a otočení displeje, název zařízení, Modbus, heslo). Ukládá se do flash a přežije vypnutí i nahrání nového firmwaru. Výchozí hodnoty jsou v `src/config.h`.
 6. Servisní kanál: textové příkazy (`help`, `diag`, `show`, `auth`, `defaults`, `reboot`) přes USB sériový port nebo TCP port 2323 (`telnet <IP> 2323`). Při zapomenutém hesle nebo špatné síti pomůže `defaults` po USB.
-7. Hlídací obvod (watchdog) restartuje zařízení, když se smyčka zasekne na déle než 8 s.
+7. Hardwarový reset nastavení: spoj GP14 se zemí (GND) na 10 s, zařízení vrátí tovární nastavení (DHCP, bez hesla) a restartuje se. Pin a dobu změníš v `config.h` (`FACTORY_RESET_PIN`, `FACTORY_RESET_HOLD_MS`).
+8. Hlídací obvod (watchdog) restartuje zařízení, když se smyčka zasekne na déle než 8 s.
 
 ## Struktura
 

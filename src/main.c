@@ -170,6 +170,23 @@ static void serial_console(void) {
     }
 }
 
+// Hardwarový reset nastavení: pin držený proti zemi FACTORY_RESET_HOLD_MS vrátí tovární nastavení a restartuje.
+// Volá se z hlavní smyčky; měří dobu, po kterou je pin nepřetržitě sepnutý.
+static void factory_reset_pin_task(void) {
+    static uint32_t pressed_since = 0;     // čas, kdy se pin sepnul (0 = nesepnutý)
+    static bool warned = false;
+    uint32_t now = to_ms_since_boot(get_absolute_time());
+    if (gpio_get(FACTORY_RESET_PIN)) { pressed_since = 0; warned = false; return; }   // pull-up: ve vysoké úrovni = nesepnuto
+    if (pressed_since == 0) pressed_since = now ? now : 1;
+    if (!warned && now - pressed_since > 1000) { warned = true; printf("Reset nastaveni: drz pin dal...\n"); }
+    if (now - pressed_since >= FACTORY_RESET_HOLD_MS) {
+        printf("Reset nastaveni: vracim tovarni nastaveni a restartuji\n");
+        settings_defaults(&g_set);
+        settings_save_now();
+        diag_reboot();
+    }
+}
+
 int main(void) {
     stdio_init_all();                         // sériový výstup přes USB (pro ladění)
     // Počkáme, až se připojí sériový monitor, aby se neztratily úvodní hlášky.
@@ -209,6 +226,10 @@ int main(void) {
 
     // --- Ethernet (neblokuje: bez kabelu program normálně běží dál) ---
     w6300_init();
+
+    gpio_init(FACTORY_RESET_PIN);             // pin pro hardwarový reset nastavení (do země = reset)
+    gpio_set_dir(FACTORY_RESET_PIN, GPIO_IN);
+    gpio_pull_up(FACTORY_RESET_PIN);
 
     led_init();                               // indikační LED na desce (WS2812, GP25)
 
@@ -258,5 +279,6 @@ int main(void) {
         net_poll();
         settings_task();                      // odložené uložení nastavení do flash (po změně z Modbusu)
         serial_console();                     // příkazy z USB sériového portu
+        factory_reset_pin_task();             // dlouhé sepnutí pinu = tovární nastavení
     }
 }
