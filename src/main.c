@@ -7,6 +7,7 @@
 #include "modbus.h"
 #include "web.h"
 #include "bme280.h"
+#include "oled.h"
 
 // ---- Pin map (verified against Waveshare RP2350-POE-ETH schematic) ----
 #define BME_I2C      i2c0
@@ -47,10 +48,10 @@ int main(void) {
     bool bme_ok = bme280_init(BME_I2C);
     printf("BME280: %s\n", bme_ok ? "found" : "NOT found (check wiring: SDA GP4, SCL GP5, 3V3, GND)");
 
-    spi_init(OLED_SPI, 8 * 1000 * 1000);
+    spi_init(OLED_SPI, 4 * 1000 * 1000);
     gpio_set_function(OLED_SCK,  GPIO_FUNC_SPI);
     gpio_set_function(OLED_MOSI, GPIO_FUNC_SPI);
-    // TODO: SH1106 init (u8g2, 4-wire SPI; DC/CS/RES as GPIO). Note 2-column RAM offset.
+    oled_init(OLED_SPI, OLED_DC, OLED_CS, OLED_RES);
 
     w6300_init();
 
@@ -67,7 +68,21 @@ int main(void) {
                 bme_ok = false;
             }
             publish();
-            // TODO: draw on OLED
+            char l1[16], l2[16], l3[24];
+            oled_clear();
+            if (g_data.status == 0) {
+                snprintf(l1, sizeof l1, "T:%.1fC", g_data.temp);
+                snprintf(l2, sizeof l2, "H:%.1f%%", g_data.hum);
+                snprintf(l3, sizeof l3, "P:%.1fhPa", g_data.press);
+            } else {
+                snprintf(l1, sizeof l1, "SENSOR");
+                snprintf(l2, sizeof l2, "ERROR");
+                l3[0] = 0;
+            }
+            oled_text(0, 2,  l1, 2);
+            oled_text(0, 24, l2, 2);
+            oled_text(0, 46, l3, 2);
+            oled_flush();
             if (g_data.status == 0)
                 printf("T=%.2f C  RH=%.1f %%  P=%.1f hPa\n", g_data.temp, g_data.hum, g_data.press);
             else
