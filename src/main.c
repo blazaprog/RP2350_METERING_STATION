@@ -6,6 +6,7 @@
 #include "sensor_data.h"
 #include "modbus.h"
 #include "web.h"
+#include "bme280.h"
 
 // ---- Pin map (verified against Waveshare RP2350-POE-ETH schematic) ----
 #define BME_I2C      i2c0
@@ -43,7 +44,8 @@ int main(void) {
     gpio_set_function(BME_SCL, GPIO_FUNC_I2C);
     gpio_pull_up(BME_SDA);
     gpio_pull_up(BME_SCL);
-    // TODO: BME280 init (Bosch driver)
+    bool bme_ok = bme280_init(BME_I2C);
+    printf("BME280: %s\n", bme_ok ? "found" : "NOT found (check wiring: SDA GP4, SCL GP5, 3V3, GND)");
 
     spi_init(OLED_SPI, 8 * 1000 * 1000);
     gpio_set_function(OLED_SCK,  GPIO_FUNC_SPI);
@@ -56,11 +58,20 @@ int main(void) {
     while (true) {
         if (time_us_32() - last > 1000000) {
             last = time_us_32();
-            // TODO: bme280 read into g_data; draw on OLED
-            g_data.status = 1;   // until the sensor is integrated
+            if (!bme_ok) bme_ok = bme280_init(BME_I2C);   // retry if the sensor appears later
+            float t, h, p;
+            if (bme_ok && bme280_read(&t, &h, &p)) {
+                g_data.temp = t; g_data.hum = h; g_data.press = p; g_data.status = 0;
+            } else {
+                g_data.status = 1;
+                bme_ok = false;
+            }
             publish();
-            printf("alive %lu s, sensor status=%d (1 = not integrated yet)\n",
-                   (unsigned long)(to_ms_since_boot(get_absolute_time()) / 1000), g_data.status);
+            // TODO: draw on OLED
+            if (g_data.status == 0)
+                printf("T=%.2f C  RH=%.1f %%  P=%.1f hPa\n", g_data.temp, g_data.hum, g_data.press);
+            else
+                printf("sensor error (status=1)\n");
         }
         net_poll();
     }

@@ -45,6 +45,8 @@ add_executable(metering_station
     src/modbus.c
     src/web.c
     src/net_w6300.c
+    src/bme280.c
+    src/bme280_calc.c
 )
 
 target_include_directories(metering_station PRIVATE src)
