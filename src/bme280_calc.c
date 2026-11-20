@@ -1,5 +1,13 @@
+// ============================================================================
+//  bme280_calc.c - kompenzační vzorce senzoru BME280
+//  Surové hodnoty z ADC senzoru jsou nepřesné; každý kus má ve výrobě změřené
+//  kalibrační konstanty a vzorcem z datasheetu se z nich spočítá správná hodnota.
+//  Vzorce jsou beze změny převzaté z datasheetu Bosch (celočíselná verze).
+// ============================================================================
 #include "bme280_calc.h"
 
+// Složí 16bitové hodnoty z dvojic bajtů (nižší bajt je první - "little endian").
+// Pozor na registry vlhkosti H4 a H5: sdílejí jeden bajt (0xE5), každá používá 4 bity.
 void bme280_parse_calib(bme280_calib_t *c, const uint8_t *a, const uint8_t *b) {
     c->T1 = (uint16_t)(a[0] | (a[1] << 8));
     c->T2 = (int16_t)(a[2] | (a[3] << 8));
@@ -21,6 +29,7 @@ void bme280_parse_calib(bme280_calib_t *c, const uint8_t *a, const uint8_t *b) {
     c->H6 = (int8_t)b[6];
 }
 
+// Teplota. Vedlejším výsledkem je t_fine, které potřebují i výpočty tlaku a vlhkosti.
 int32_t bme280_comp_temp(const bme280_calib_t *c, int32_t adc_T, int32_t *t_fine) {
     int32_t var1 = ((((adc_T >> 3) - ((int32_t)c->T1 << 1))) * ((int32_t)c->T2)) >> 11;
     int32_t var2 = (((((adc_T >> 4) - (int32_t)c->T1) * ((adc_T >> 4) - (int32_t)c->T1)) >> 12)
@@ -29,6 +38,7 @@ int32_t bme280_comp_temp(const bme280_calib_t *c, int32_t adc_T, int32_t *t_fine
     return (*t_fine * 5 + 128) >> 8;
 }
 
+// Tlak (64bitový výpočet kvůli rozsahu mezivýsledků).
 uint32_t bme280_comp_press(const bme280_calib_t *c, int32_t adc_P, int32_t t_fine) {
     int64_t var1 = (int64_t)t_fine - 128000;
     int64_t var2 = var1 * var1 * (int64_t)c->P6;
@@ -45,6 +55,7 @@ uint32_t bme280_comp_press(const bme280_calib_t *c, int32_t adc_P, int32_t t_fin
     return (uint32_t)p;
 }
 
+// Vlhkost (výsledek omezíme na platný rozsah 0 až 100 %).
 uint32_t bme280_comp_hum(const bme280_calib_t *c, int32_t adc_H, int32_t t_fine) {
     int32_t v = t_fine - 76800;
     v = (((((adc_H << 14) - (((int32_t)c->H4) << 20) - (((int32_t)c->H5) * v)) + 16384) >> 15)

@@ -1,32 +1,48 @@
+// ============================================================================
+//  oled_font.h - malé písmo 5x7 pixelů pro displej
+//
+//  Každý znak má 5 sloupců. Bajt = jeden sloupec, nejnižší bit je horní pixel.
+//  Obsahuje jen znaky, které měřič potřebuje (číslice, tečka, %, pár písmen).
+//  Chybějící znak se zobrazí jako mezera.
+// ============================================================================
 #pragma once
 #include <stdint.h>
 
-// 5x7 font, column-major, bit0 = top row. Only the glyphs the meter needs.
 static inline const uint8_t *oled_glyph(char c) {
     static const uint8_t g_space[5] = {0x00,0x00,0x00,0x00,0x00};
-    static const uint8_t g_pct[5]   = {0x23,0x13,0x08,0x64,0x62};
-    static const uint8_t g_minus[5] = {0x08,0x08,0x08,0x08,0x08};
-    static const uint8_t g_dot[5]   = {0x00,0x60,0x60,0x00,0x00};
-    static const uint8_t g_colon[5] = {0x00,0x36,0x36,0x00,0x00};
-    static const uint8_t g_digit[10][5] = {
+    static const uint8_t g_pct[5]   = {0x23,0x13,0x08,0x64,0x62};   // %
+    static const uint8_t g_minus[5] = {0x08,0x08,0x08,0x08,0x08};   // -
+    static const uint8_t g_dot[5]   = {0x00,0x60,0x60,0x00,0x00};   // .
+    static const uint8_t g_colon[5] = {0x00,0x36,0x36,0x00,0x00};   // :
+    static const uint8_t g_digit[10][5] = {                         // 0 až 9
         {0x3E,0x51,0x49,0x45,0x3E}, {0x00,0x42,0x7F,0x40,0x00}, {0x42,0x61,0x51,0x49,0x46},
         {0x21,0x41,0x45,0x4B,0x31}, {0x18,0x14,0x12,0x7F,0x10}, {0x27,0x45,0x45,0x45,0x39},
         {0x3C,0x4A,0x49,0x49,0x30}, {0x01,0x71,0x09,0x05,0x03}, {0x36,0x49,0x49,0x49,0x36},
         {0x06,0x49,0x49,0x29,0x1E}};
     static const uint8_t g_C[5] = {0x3E,0x41,0x41,0x41,0x22};
+    static const uint8_t g_D[5] = {0x7F,0x41,0x41,0x41,0x3E};
     static const uint8_t g_E[5] = {0x7F,0x49,0x49,0x49,0x41};
     static const uint8_t g_H[5] = {0x7F,0x08,0x08,0x08,0x7F};
+    static const uint8_t g_I[5] = {0x00,0x41,0x7F,0x41,0x00};
+    static const uint8_t g_K[5] = {0x7F,0x08,0x14,0x22,0x41};
+    static const uint8_t g_L[5] = {0x7F,0x40,0x40,0x40,0x40};
+    static const uint8_t g_N[5] = {0x7F,0x04,0x08,0x10,0x7F};
+    static const uint8_t g_O[5] = {0x3E,0x41,0x41,0x41,0x3E};
     static const uint8_t g_P[5] = {0x7F,0x09,0x09,0x09,0x06};
     static const uint8_t g_R[5] = {0x7F,0x09,0x19,0x29,0x46};
+    static const uint8_t g_S[5] = {0x46,0x49,0x49,0x49,0x31};
     static const uint8_t g_T[5] = {0x01,0x01,0x7F,0x01,0x01};
     static const uint8_t g_a[5] = {0x20,0x54,0x54,0x54,0x78};
     static const uint8_t g_h[5] = {0x7F,0x08,0x04,0x04,0x78};
     if (c >= '0' && c <= '9') return g_digit[c - '0'];
     switch (c) {
         case '%': return g_pct;   case '-': return g_minus; case '.': return g_dot;
-        case ':': return g_colon; case 'C': return g_C;     case 'E': return g_E;
-        case 'H': return g_H;     case 'P': return g_P;     case 'R': return g_R;
-        case 'T': return g_T;     case 'a': return g_a;     case 'h': return g_h;
+        case ':': return g_colon; case 'C': return g_C;     case 'D': return g_D;
+        case 'E': return g_E;     case 'H': return g_H;     case 'I': return g_I;
+        case 'K': return g_K;     case 'L': return g_L;     case 'N': return g_N;
+        case 'O': return g_O;     case 'P': return g_P;     case 'R': return g_R;
+        case 'S': return g_S;     case 'T': return g_T;     case 'a': return g_a;
+        case 'h': return g_h;
         default:  return g_space;
     }
 }
