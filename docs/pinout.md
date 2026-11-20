@@ -1,0 +1,21 @@
+# Pinout (RP2350-POE-ETH)
+
+| Component | Signal | GPIO |
+|---|---|---|
+| W6300 (SPI0) | MISO / CSn / SCK / MOSI | GP16 / GP17 / GP18 / GP19 |
+| W6300 | RSTn / INTn | GP20 / GP21 |
+| OLED 1.3" SH1106 (SPI1, 4-wire) | SCK / MOSI(SDA) / CS / DC / RES | GP10 / GP11 / GP9 / GP8 / GP12 |
+| BME280 (I2C0) | SDA / SCL | GP4 / GP5 |
+
+Reserved by the board: GP23 POE_DET, GP24 USB_DET, GP25 WS2812, GP29 ADC3.
+
+## Modbus TCP (port 502), FC 03/04
+| Addr | Value | Unit |
+|---|---|---|
+| 0 | Temperature (int16) | 0.1 C |
+| 1 | Humidity (uint16) | 0.1 %RH |
+| 2 | Pressure (uint16) | hPa |
+| 3 | Status (0 OK, 1 sensor error) | - |
+
+## HTTP
+- `GET /` HTML page, `GET /api/data` JSON.
