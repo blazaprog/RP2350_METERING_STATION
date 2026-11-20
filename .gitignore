@@ -2,4 +2,4 @@ build/
 *.uf2
 *.elf
 *.bin
-.vscode/settings.json
+.vscode/
