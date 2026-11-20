@@ -49,3 +49,7 @@
 #define OLED_CONTRAST       0xCF                 // jas displeje 0x00 až 0xFF
 #define OLED_SPI_HZ         (4 * 1000 * 1000)    // rychlost SPI; při šumu v obraze zkus 1 MHz
 #define OLED_SPLASH_MS      1200                 // jak dlouho při startu svítí testovací obrazec (0 = vypnout)
+
+// --- Obnovování měření a displeje -------------------------------------------
+#define MEASURE_PERIOD_MS   250                  // jak často se měří a překresluje displej (ms); menší číslo = rychlejší
+#define SERIAL_PERIOD_MS    1000                 // jak často se vypisuje řádek do sériového monitoru (ms)

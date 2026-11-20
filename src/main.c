@@ -5,7 +5,7 @@
 //            senzor BME280 (I2C) a displej 1.3" OLED SH1106 (SPI).
 //
 //  Co program dělá:
-//    1. Jednou za sekundu změří teplotu, vlhkost a tlak (BME280).
+//    1. Několikrát za sekundu (MEASURE_PERIOD_MS) změří teplotu, vlhkost a tlak (BME280).
 //    2. Zobrazí hodnoty a stav sítě na displeji.
 //    3. Vystaví je přes Ethernet: webová stránka (port 80), JSON (/api/data)
 //       a Modbus TCP (port 502).
@@ -50,22 +50,24 @@ static void publish(void) {
 }
 
 // Vykreslí hodnoty a stav sítě na displej.
+// Rozložení (128x64 px): nahoře velká teplota, pod ní vlhkost a tlak, dole malým písmem stav sítě/IP.
 static void draw_display(void) {
-    char l1[16], l2[16], l3[24];
+    char l1[16], l2[20], l3[20];
     oled_clear();
     if (g_data.status == 0) {
-        snprintf(l1, sizeof l1, "T:%.1fC", g_data.temp);
-        snprintf(l2, sizeof l2, "H:%.1f%%", g_data.hum);
-        snprintf(l3, sizeof l3, "P:%.1fhPa", g_data.press);
+        // "\xC2\xB0" je znak ° v UTF-8 (zapsaný zvlášť, aby se za ním "C" nezměnilo na číslo znaku)
+        snprintf(l1, sizeof l1, "%.1f" "\xC2\xB0" "C", g_data.temp);
+        snprintf(l2, sizeof l2, "RH %.1f %%", g_data.hum);
+        snprintf(l3, sizeof l3, "%.1f hPa", g_data.press);
     } else {
-        snprintf(l1, sizeof l1, "SENSOR");
-        snprintf(l2, sizeof l2, "ERROR");
+        snprintf(l1, sizeof l1, "---");
+        snprintf(l2, sizeof l2, "SENSOR ERROR");
         l3[0] = 0;
     }
-    oled_text(0, 0,  l1, 2);                  // tři řádky velkým písmem (2x)
-    oled_text(0, 17, l2, 2);
-    oled_text(0, 34, l3, 2);
-    oled_text(0, 55, net_status_text(), 1);   // dole malým písmem: IP adresa nebo stav sítě
+    oled_text_font(0, 0,  l1, &font_12x24);               // teplota největším písmem
+    oled_text_font(0, 26, l2, &font_8x16);                // vlhkost
+    oled_text_font(0, 42, l3, &font_8x16);                // tlak
+    oled_text_font(0, 56, net_status_text(), &font_5x8);  // dole: IP adresa nebo stav sítě
     oled_flush();
 }
 
@@ -106,12 +108,12 @@ int main(void) {
 
     led_init();                               // indikační LED na desce (WS2812, GP25)
 
-    uint32_t last = 0;
+    uint32_t last = 0, last_print = 0;
     while (true) {
         led_heartbeat();                      // pomalé blikání LED (neblokující)
 
-        // Jednou za sekundu: měření, aktualizace displeje a výpis na sériový výstup.
-        if (time_us_32() - last > 1000000) {
+        // Každých MEASURE_PERIOD_MS: měření a překreslení displeje (výpis na sériový výstup řídí SERIAL_PERIOD_MS).
+        if ((time_us_32() - last) / 1000 >= MEASURE_PERIOD_MS) {
             last = time_us_32();
 
             if (!bme_ok) bme_ok = bme280_init(BME_I2C);       // senzor mohl být připojen dodatečně
@@ -125,14 +127,17 @@ int main(void) {
             publish();
             draw_display();
 
-            if (g_data.status == 0)
-                printf("T=%.2f C  RH=%.1f %%  P=%.1f hPa  [%s]\n",
-                       g_data.temp, g_data.hum, g_data.press, net_status_text());
-            else
-                printf("sensor error (status=1)  [%s]\n", net_status_text());
+            if ((time_us_32() - last_print) / 1000 >= SERIAL_PERIOD_MS) {
+                last_print = time_us_32();
+                if (g_data.status == 0)
+                    printf("T=%.2f C  RH=%.1f %%  P=%.1f hPa  [%s]\n",
+                           g_data.temp, g_data.hum, g_data.press, net_status_text());
+                else
+                    printf("sensor error (status=1)  [%s]\n", net_status_text());
+            }
         }
 
-        // Obsluha sítě: musí se volat co nejčastěji (proto je mimo sekundový blok výše).
+        // Obsluha sítě: musí se volat co nejčastěji (proto je mimo blok měření výše).
         net_poll();
     }
 }

@@ -24,3 +24,16 @@ void oled_fill(void);
 
 // Nakreslí rámeček po obvodu displeje do paměti. Zobrazí se po oled_flush().
 void oled_border(void);
+
+// Bitmapové písmo: šířka a výška znaku v pixelech a tabulka znaků (ASCII 32 až 126 a stupeň).
+// Jeden řádek znaku zabírá (w+7)/8 bajtů, nejlevější pixel je nejvyšší bit.
+typedef struct { uint8_t w, h; const uint8_t *data; } oled_font_t;
+
+// Dostupná písma (Spleen, viz src/oled_fonts.c): číslo = šířka x výška znaku v pixelech.
+extern const oled_font_t font_5x8, font_6x12, font_8x16, font_12x24;
+
+// Vykreslí text zvoleným písmem na pozici (x, y). Text je v UTF-8, podporuje znak ° (zapisuje se "\xC2\xB0").
+void oled_text_font(int x, int y, const char *s, const oled_font_t *f);
+
+// Šířka textu v pixelech pro dané písmo (např. pro zarovnání doprava).
+int oled_text_width(const char *s, const oled_font_t *f);

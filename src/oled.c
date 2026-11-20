@@ -99,6 +99,34 @@ void oled_text(int x, int y, const char *s, int scale) {
     }
 }
 
+// Vrátí pořadí znaku v tabulce písma: ASCII 32 až 126 jdou za sebou (0 až 94), stupeň je na pozici 95.
+// Neznámý znak se zobrazí jako mezera.
+static int glyph_index(unsigned char c) {
+    if (c >= 32 && c <= 126) return c - 32;
+    if (c == 0xB0) return 95;
+    return 0;
+}
+
+void oled_text_font(int x, int y, const char *s, const oled_font_t *f) {
+    int bpr = (f->w + 7) / 8;                              // bajtů na řádek znaku
+    for (; *s; s++) {
+        unsigned char c = (unsigned char)*s;
+        if (c == 0xC2) continue;                           // první bajt UTF-8 zápisu znaku ° (U+00B0) přeskočíme
+        const uint8_t *g = f->data + (size_t)glyph_index(c) * f->h * bpr;
+        for (int row = 0; row < f->h; row++)
+            for (int col = 0; col < f->w; col++)
+                if (g[row * bpr + (col >> 3)] & (0x80u >> (col & 7)))
+                    pixel(x + col, y + row);
+        x += f->w;                                         // písmo má pevnou šířku znaku
+    }
+}
+
+int oled_text_width(const char *s, const oled_font_t *f) {
+    int n = 0;
+    for (; *s; s++) if ((unsigned char)*s != 0xC2) n++;    // bajt 0xC2 není samostatný znak
+    return n * f->w;
+}
+
 void oled_flush(void) {
     for (int page = 0; page < 8; page++) {
         cmd(0xB0 | page);                                // výběr stránky (řádku po 8 pixelech)

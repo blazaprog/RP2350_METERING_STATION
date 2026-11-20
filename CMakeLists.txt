@@ -56,6 +56,7 @@ add_executable(metering_station
     src/bme280.c
     src/bme280_calc.c
     src/oled.c
+    src/oled_fonts.c
     src/led.c
 )
 
