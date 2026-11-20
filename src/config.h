@@ -31,3 +31,10 @@
 // aby ses nepřipravil o úvodní hlášky. Při provozu bez USB (napájení z PoE) to jen
 // zdrží start o tuto dobu; pokud to nechceš, nastav 0.
 #define DEBUG_USB_WAIT_MS   3000
+
+// --- Indikační LED (WS2812 na desce) ----------------------------------------
+#define LED_PIN             25                   // pin, na kterém je LED připojená
+#define LED_BLINK_MS        1000                 // jak dlouho svítí / nesvítí (ms) - větší číslo = pomalejší blikání
+#define LED_ON_R            0                    // barva při svitu (0 až 255); nízké hodnoty = slabší svit
+#define LED_ON_G            40
+#define LED_ON_B            0

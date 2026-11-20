@@ -1,0 +1,44 @@
+; ============================================================================
+;  led.pio - program pro PIO, který posílá data do RGB LED WS2812 (800 kHz)
+;  Převzato z oficiálního příkladu Raspberry Pi (BSD-3-Clause).
+;  WS2812 se řídí jedním vodičem: každý bit je impuls, jehož délka rozhoduje,
+;  zda jde o 0 nebo 1. PIO to zvládne přesně na nanosekundy bez zatížení procesoru.
+; ============================================================================
+.program led
+.side_set 1
+
+.define public T1 2     ; délka úvodního impulsu (v taktech PIO)
+.define public T2 5     ; délka prostřední části
+.define public T3 3     ; délka závěrečné části
+
+.wrap_target
+bitloop:
+    out x, 1       side 0 [T3 - 1]   ; vyzvedni další bit z FIFO
+    jmp !x do_zero side 1 [T1 - 1]   ; podle bitu větvi: krátký nebo dlouhý impuls
+do_one:
+    jmp  bitloop   side 1 [T2 - 1]   ; jedničku drž ve vysoké úrovni déle
+do_zero:
+    nop            side 0 [T2 - 1]   ; nulu vrať rychle do nízké úrovně
+.wrap
+
+% c-sdk {
+#include "hardware/clocks.h"
+
+// Nastaví stavový automat PIO tak, aby generoval signál WS2812 na daném pinu.
+static inline void led_program_init(PIO pio, uint sm, uint offset, uint pin, float freq) {
+    pio_gpio_init(pio, pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+
+    pio_sm_config c = led_program_get_default_config(offset);
+    sm_config_set_sideset_pins(&c, pin);
+    sm_config_set_out_shift(&c, false, true, 24);       // 24 bitů na LED, odesílá se od nejvyššího bitu
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+
+    int cycles_per_bit = led_T1 + led_T2 + led_T3;
+    float div = clock_get_hz(clk_sys) / (freq * cycles_per_bit);
+    sm_config_set_clkdiv(&c, div);
+
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}

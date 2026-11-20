@@ -10,6 +10,7 @@
 //    3. Vystaví je přes Ethernet: webová stránka (port 80), JSON (/api/data)
 //       a Modbus TCP (port 502).
 //    4. Celou dobu průběžně obsluhuje síť (net_poll), takže se nikdy nezasekne.
+//    5. Indikační LED na desce pomalu bliká (znamení, že firmware běží).
 // ============================================================================
 #include <stdio.h>
 #include "pico/stdlib.h"
@@ -22,6 +23,7 @@
 #include "bme280.h"
 #include "oled.h"
 #include "net_w6300.h"
+#include "led.h"
 
 // ---- Zapojení periferií (ověřeno podle schématu Waveshare RP2350-POE-ETH) ----
 // Poznámka: Ethernet W6300 používá SPI0 a GP16 až GP21 (viz lib/ethchip/Port/DEV_Config.h).
@@ -92,8 +94,12 @@ int main(void) {
     // --- Ethernet (neblokuje: bez kabelu program normálně běží dál) ---
     w6300_init();
 
+    led_init();                               // indikační LED na desce (WS2812, GP25)
+
     uint32_t last = 0;
     while (true) {
+        led_heartbeat();                      // pomalé blikání LED (neblokující)
+
         // Jednou za sekundu: měření, aktualizace displeje a výpis na sériový výstup.
         if (time_us_32() - last > 1000000) {
             last = time_us_32();

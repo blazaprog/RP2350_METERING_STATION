@@ -56,18 +56,23 @@ add_executable(metering_station
     src/bme280.c
     src/bme280_calc.c
     src/oled.c
+    src/led.c
 )
 
 target_include_directories(metering_station PRIVATE src)
 
-# Použité knihovny: základ SDK, I2C (senzor), SPI (displej), unikátní ID čipu (MAC adresa) a Ethernet
+# Použité knihovny: základ SDK, I2C (senzor), SPI (displej), PIO (LED), unikátní ID čipu (MAC adresa) a Ethernet
 target_link_libraries(metering_station
     pico_stdlib
     hardware_i2c
     hardware_spi
+    hardware_pio
     pico_unique_id
     ethchip
 )
+
+# Z programu pro PIO (led.pio) se při sestavení vygeneruje hlavička led.pio.h
+pico_generate_pio_header(metering_station ${CMAKE_CURRENT_LIST_DIR}/src/led.pio)
 
 # Výpisy (printf) jdou přes USB (sériový monitor), UART je vypnutý
 pico_enable_stdio_usb(metering_station 1)
