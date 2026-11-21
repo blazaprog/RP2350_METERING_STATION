@@ -150,15 +150,16 @@ async function save(defaults){
  if($('pw').value)p.set('pw',$('pw').value);
  if(defaults)p.set('defaults','1');
  $('fm').textContent='Ukládám…';$('fm').className='';
+ let d;
  try{
   const r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:p.toString()});
-  const d=await r.json();
-  if(d.ok){
-   $('fm').textContent=d.net?'Uloženo. Síť se přenastavuje, novou adresu uvidíš na displeji zařízení.':'Uloženo.';$('fm').className='good';
-   $('newpass').value='';loaded=false;if(!d.net)loadSet();
-   if(d.net&&!$('f_dhcp').checked){const ip=$('f_ip').value;setTimeout(()=>location.href='http://'+ip+'/',6000)}
-  }else{$('fm').textContent=d.error||'Chyba';$('fm').className='bad'}
- }catch(e){$('fm').textContent=p.get('dhcp')!==null?'Spojení se zařízením se přerušilo (možná se změnila adresa).':'Chyba spojení';$('fm').className='bad'}
+  d=await r.json();
+ }catch(e){$('fm').textContent='Spojení se zařízením se přerušilo (možná se změnila adresa).';$('fm').className='bad';return}
+ if(d.ok){
+  $('fm').textContent=d.net?'Uloženo. Síť se přenastavuje, novou adresu uvidíš na displeji zařízení.':'Uloženo.';$('fm').className='good';
+  $('f_newpass').value='';$('pw').value='';loaded=false;if(!d.net)loadSet();
+  if(d.net&&!$('f_dhcp').checked){const ip=$('f_ip').value;setTimeout(()=>location.href='http://'+ip+'/',6000)}
+ }else{$('fm').textContent=d.error||'Chyba';$('fm').className='bad'}
 }
 $('sv').onclick=()=>save(false);
 $('df').onclick=()=>{if(confirm('Obnovit výchozí nastavení (síť, kalibrace, displej, heslo)?'))save(true)};
